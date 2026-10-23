@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crack the Code</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+  :root{
+    --bg:#0e1806; --panel:#1a2a0c; --panel2:#0a1204; --line:#3f5c1a;
+    --gold:#e8ff2e; --pink:#72e01c; --green:#a6ff3d; --red:#ff6b2b;
+    --text:#f3ffe0; --muted:#a9c67c;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    min-height:100vh; color:var(--text);
+    font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;
+    background:radial-gradient(circle at 50% -10%,#2f4f10 0%,var(--bg) 60%) fixed, var(--bg);
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:24px 16px 56px}
+  h1{
+    font-family:Bungee,sans-serif; font-weight:400; text-align:center; margin:8px 0 4px;
+    font-size:clamp(34px,8vw,64px); color:var(--gold); letter-spacing:1px;
+    text-shadow:0 0 22px rgba(232,255,46,.45),0 4px 0 #748600;
+  }
+  .tag{text-align:center;color:var(--muted);margin:0 0 24px}
+  .card{
+    background:var(--panel); border:3px solid var(--gold); border-radius:18px; padding:22px;
+    box-shadow:0 0 0 6px rgba(232,255,46,.08),0 18px 40px rgba(0,0,0,.4);
+  }
+  .bulbs{position:relative}
+  .bulbs::before{
+    content:""; position:absolute; inset:-11px; border-radius:24px; pointer-events:none;
+    background:radial-gradient(circle,var(--gold) 2.5px,transparent 3.5px) 0 0/22px 22px;
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor; mask-composite:exclude; padding:6px; opacity:.85;
+    animation:twinkle 1.2s steps(2) infinite;
+  }
+  @keyframes twinkle{50%{opacity:.4}}
+  label{display:block;font-weight:600;margin:0 0 6px}
+  input[type=text]{
+    width:100%; padding:12px 14px; border-radius:10px; border:2px solid var(--line);
+    background:var(--panel2); color:var(--text); font:inherit; font-size:18px;
+  }
+  input[type=text]:focus{outline:none;border-color:var(--gold)}
+  button{
+    font:inherit; font-weight:800; cursor:pointer; border:none; border-radius:12px;
+    padding:13px 18px; font-size:17px; color:#132004; background:var(--gold);
+    box-shadow:0 4px 0 #748600; transition:transform .05s;
+  }
+  button:active{transform:translateY(3px);box-shadow:0 1px 0 #748600}
+  button.alt{background:var(--pink);color:#132004;box-shadow:0 4px 0 #3c8a08}
+  button.ghost{background:transparent;color:var(--muted);box-shadow:none;border:2px solid var(--line);padding:8px 12px;font-size:14px}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+  .row > *{flex:1 1 200px}
+  .stack{display:grid;gap:18px}
+  .or{text-align:center;color:var(--muted);font-weight:600}
+  .error{color:var(--red);font-weight:600;min-height:1.4em;margin:0}
+  .rules{color:var(--muted);line-height:1.55;margin:0;padding-left:20px}
+  .rules b{color:var(--text)}
+
+  .bigcode{
+    font-family:Bungee,sans-serif;font-size:clamp(44px,12vw,80px);text-align:center;
+    color:var(--gold);letter-spacing:8px;margin:6px 0 10px;
+  }
+  .center{text-align:center}
+  .muted{color:var(--muted)}
+  .spinner{display:inline-block;width:18px;height:18px;border:3px solid var(--line);border-top-color:var(--gold);border-radius:50%;animation:spin 1s linear infinite;vertical-align:-3px;margin-right:8px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* game */
+  .topbar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:14px}
+  .status{
+    font-family:Bungee,sans-serif;font-size:clamp(18px,4vw,26px);text-align:center;
+    padding:14px;border-radius:14px;background:var(--panel2);border:2px solid var(--line);margin-bottom:16px;
+  }
+  .status.mine{border-color:var(--gold);color:var(--gold);box-shadow:0 0 20px rgba(232,255,46,.25)}
+  .notice{background:#33300a;border:2px solid var(--pink);border-radius:12px;padding:10px 14px;margin-bottom:14px}
+  .boards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+  @media (max-width:640px){.boards{grid-template-columns:1fr}}
+  .board{background:var(--panel);border:3px solid var(--line);border-radius:16px;padding:16px;transition:border-color .2s}
+  .board.turn{border-color:var(--gold)}
+  .board h2{margin:0 0 4px;font-size:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:12px}
+  .dials{display:flex;gap:10px;justify-content:center}
+  .dial{
+    width:clamp(54px,14vw,72px);height:clamp(72px,18vw,92px);border-radius:12px;
+    background:var(--panel2);border:3px solid var(--line);display:grid;place-items:center;
+    font-family:Bungee,sans-serif;font-size:clamp(30px,8vw,44px);color:var(--muted);
+  }
+  .dial.active{border-color:var(--gold);color:var(--gold);animation:pulse 1.4s ease-in-out infinite}
+  .dial.locked{border-color:var(--green);color:var(--green);background:#1d3a08}
+  .dial.hidden{font-size:clamp(24px,6vw,32px)}
+  .dial.pop{animation:pop .5s}
+  .dial.shake{animation:shake .45s;border-color:var(--red)!important;color:var(--red)!important}
+  @keyframes pulse{50%{box-shadow:0 0 18px rgba(232,255,46,.55)}}
+  @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
+  @keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+
+  .keypad{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;max-width:460px;margin:0 auto 18px}
+  .keypad button{font-family:Bungee,sans-serif;font-size:28px;padding:14px 0}
+  .keypad button.tried{background:#2a3d12;color:#6f8c45;box-shadow:none;text-decoration:line-through}
+  .hint{text-align:center;color:var(--muted);font-size:14px;margin:-6px 0 18px}
+
+  .log{list-style:none;margin:0;padding:0;max-height:220px;overflow:auto;background:var(--panel2);border:2px solid var(--line);border-radius:12px}
+  .log li{padding:8px 12px;border-bottom:1px solid #1b2b0c;font-size:15px}
+  .log li:last-child{border-bottom:none}
+  .log .good{color:var(--green)} .log .bad{color:var(--red)} .log .info{color:var(--gold)}
+
+  .overlay{position:fixed;inset:0;background:rgba(5,10,2,.85);display:grid;place-items:center;padding:16px;z-index:10}
+  .overlay .card{max-width:460px;width:100%;text-align:center}
+  .overlay h2{font-family:Bungee,sans-serif;font-weight:400;font-size:clamp(28px,7vw,40px);margin:0 0 8px;color:var(--gold)}
+  .overlay .dials{margin:16px 0 20px}
+  .gunge{position:fixed;top:0;left:0;right:0;height:70px;pointer-events:none;z-index:5;
+    filter:drop-shadow(0 3px 2px rgba(0,0,0,.35))}
+  .gunge svg{width:100%;height:100%;display:block}
+  .gunge .drip{animation:ooze 4s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:top}
+  .gunge .drip:nth-child(2n){animation-duration:5.5s}
+  .gunge .drip:nth-child(3n){animation-duration:3.2s}
+  @keyframes ooze{to{transform:scaleY(1.35)}}
+  .wrap{padding-top:64px}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="gunge" aria-hidden="true"><svg viewBox="0 0 1000 70" preserveAspectRatio="none">
+  <defs><linearGradient id="slime" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c9f21a"/><stop offset="1" stop-color="#6fd11b"/></linearGradient></defs>
+  <rect x="0" y="0" width="1000" height="16" fill="url(#slime)"/>
+  <g fill="url(#slime)">
+    <path class="drip" d="M40 14 q0 26 12 30 q12-4 12-30z"/>
+    <path class="drip" d="M130 14 q0 40 9 44 q9-4 9-44z"/>
+    <path class="drip" d="M215 14 q0 18 14 22 q14-4 14-22z"/>
+    <path class="drip" d="M320 14 q0 34 10 38 q10-4 10-38z"/>
+    <path class="drip" d="M410 14 q0 22 16 26 q16-4 16-26z"/>
+    <path class="drip" d="M520 14 q0 44 8 48 q8-4 8-48z"/>
+    <path class="drip" d="M600 14 q0 20 13 24 q13-4 13-24z"/>
+    <path class="drip" d="M700 14 q0 32 11 36 q11-4 11-36z"/>
+    <path class="drip" d="M790 14 q0 16 15 20 q15-4 15-20z"/>
+    <path class="drip" d="M880 14 q0 38 9 42 q9-4 9-42z"/>
+    <path class="drip" d="M955 14 q0 24 12 28 q12-4 12-28z"/>
+  </g></svg></div>
+<div class="wrap">
+  <h1>Crack the Code</h1>
+  <p class="tag">Four secret digits. Two players. First to crack the lock wins.</p>
+
+  <!-- LOBBY -->
+  <section id="lobby" class="screen">
+    <div class="card bulbs stack">
+      <div>
+        <label for="name">Your name</label>
+        <input id="name" type="text" maxlength="16" placeholder="e.g. Noel" autocomplete="off">
+      </div>
+      <div class="row">
+        <button id="createBtn">Create a game</button>
+      </div>
+      <div class="or">— or join a friend —</div>
+      <div class="row">
+        <div>
+          <label for="joinCode">Game code</label>
+          <input id="joinCode" type="text" maxlength="5" placeholder="ABCDE" autocomplete="off" style="text-transform:uppercase;letter-spacing:4px">
+        </div>
+        <button id="joinBtn" class="alt" style="flex:0 1 160px">Join</button>
+      </div>
+      <p id="error" class="error"></p>
+      <ul class="rules">
+        <li>The game picks a secret <b>4-digit code</b> (each digit 0–9). Both players chase the same code.</li>
+        <li>Crack it <b>one digit at a time</b>, left to right. Guess right and that digit <b>locks in</b> — and you go again.</li>
+        <li>Guess wrong and it's your opponent's turn.</li>
+        <li>You can see how many digits your rival has locked, but not which numbers. <b>First to lock all four wins.</b></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- WAITING -->
+  <section id="waiting" class="screen" hidden>
+    <div class="card bulbs center stack">
+      <div class="muted">Send this code to your opponent</div>
+      <div id="roomCode" class="bigcode">-----</div>
+      <div class="row">
+        <input id="shareLink" type="text" readonly>
+        <button id="copyBtn" style="flex:0 1 140px">Copy link</button>
+      </div>
+      <div class="muted"><span class="spinner"></span>Waiting for player 2 to join…</div>
+    </div>
+  </section>
+
+  <!-- CONNECTING -->
+  <section id="connecting" class="screen" hidden>
+    <div class="card center"><span class="spinner"></span><span id="connectingText">Connecting…</span></div>
+  </section>
+
+  <!-- GAME -->
+  <section id="game" class="screen" hidden>
+    <div class="topbar">
+      <span class="muted">Game <b id="gameCode"></b></span>
+      <span>
+        <button id="muteBtn" class="ghost" title="Sound on/off">🔊</button>
+        <button id="leaveBtn" class="ghost">Leave</button>
+      </span>
+    </div>
+    <div id="notice" class="notice" hidden></div>
+    <div id="status" class="status">…</div>
+    <div class="boards">
+      <div id="meBoard" class="board">
+        <h2 id="meName">You</h2>
+        <div id="meMeta" class="meta"></div>
+        <div id="meDials" class="dials"></div>
+      </div>
+      <div id="oppBoard" class="board">
+        <h2 id="oppName">Opponent</h2>
+        <div id="oppMeta" class="meta"></div>
+        <div id="oppDials" class="dials"></div>
+      </div>
+    </div>
+    <div id="keypad" class="keypad"></div>
+    <p class="hint">Tip: you can type the number keys on your keyboard too.</p>
+    <ul id="log" class="log"></ul>
+  </section>
+</div>
+
+<!-- RESULT -->
+<div id="overlay" class="overlay" hidden>
+  <div class="card bulbs">
+    <h2 id="resultTitle"></h2>
+    <div id="resultText" class="muted"></div>
+    <div id="secretDials" class="dials"></div>
+    <button id="rematchBtn">Play again</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const PREFIX = 'nhp-crack-the-code-';
+  const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const $ = s => document.querySelector(s);
+
+  let peer = null, conn = null, isHost = false;
+  let myName = '', oppName = '', roomCode = '';
+  let game = null, firstTurn = 0, seq = 0;      // host only
+  let view = null, lastSeen = -1, joinTimer = null, muted = false;
+
+  // ---------- helpers ----------
+  const rand10 = () => { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % 10; };
+  const genCode = () => Array.from({length: 5}, () => ALPHA[Math.floor(Math.random() * ALPHA.length)]).join('');
+  const cleanName = n => String(n || '').trim().slice(0, 16) || 'Player';
+  const linkFor = code => location.origin + location.pathname + '?join=' + code;
+  const show = id => document.querySelectorAll('.screen').forEach(s => s.hidden = s.id !== id);
+  const setError = m => { $('#error').textContent = m || ''; };
+
+  function store(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function load(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+
+  function fail(msg) {
+    clearTimeout(joinTimer);
+    try { if (peer) peer.destroy(); } catch (e) {}
+    peer = null; conn = null; game = null;
+    show('lobby'); setError(msg);
+  }
+
+  // ---------- sound ----------
+  let actx = null;
+  function tone(f, t = .12, type = 'sine', when = 0, vol = .15) {
+    if (muted) return;
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      const o = actx.createOscillator(), g = actx.createGain(), s = actx.currentTime + when;
+      o.type = type; o.frequency.value = f;
+      g.gain.setValueAtTime(vol, s); g.gain.exponentialRampToValueAtTime(.0001, s + t);
+      o.connect(g).connect(actx.destination); o.start(s); o.stop(s + t + .03);
+    } catch (e) {}
+  }
+  const sfx = {
+    click: () => tone(700, .05, 'square', 0, .04),
+    wrong: () => { tone(170, .4, 'sawtooth', 0, .1); tone(120, .4, 'sawtooth', .05, .08); },
+    lock:  () => { tone(523, .12, 'triangle'); tone(784, .22, 'triangle', .1); },
+    opp:   () => tone(330, .15, 'triangle', 0, .08),
+    win:   () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .3, 'triangle', i * .12)),
+    lose:  () => [392, 330, 262].forEach((f, i) => tone(f, .35, 'sine', i * .2))
+  };
+
+  // ---------- networking ----------
+  function wireConn() {
+    conn.on('open', () => {
+      clearTimeout(joinTimer);
+      $('#notice').hidden = true;
+      if (!isHost) conn.send({type: 'hello', name: myName});
+    });
+    conn.on('data', d => isHost ? hostData(d) : guestData(d));
+    conn.on('close', () => {
+      conn = null;
+      if (!$('#game').hidden) {
+        notice(`${oppName || 'Your opponent'} disconnected.` +
+          (isHost ? ' They can rejoin with the same code and carry on.' : ' Reload the page to try rejoining.'));
+      }
+    });
+    conn.on('error', () => {});
+  }
+
+  function startHost(tries = 0) {
+    roomCode = genCode();
+    peer = new Peer(PREFIX + roomCode);
+    peer.on('open', () => {
+      $('#roomCode').textContent = roomCode;
+      $('#shareLink').value = linkFor(roomCode);
+      show('waiting');
+    });
+    peer.on('connection', c => {
+      if (conn && conn.open) { // already have a player 2
+        c.on('open', () => { c.send({type: 'full'}); setTimeout(() => c.close(), 400); });
+        return;
+      }
+      conn = c; wireConn();
+    });
+    peer.on('disconnected', () => { try { peer.reconnect(); } catch (e) {} });
+    peer.on('error', e => {
+      if (e.type === 'unavailable-id' && tries < 4) { peer.destroy(); startHost(tries + 1); return; }
+      if (e.type === 'peer-unavailable') return;
+      fail('Connection problem (' + (e.type || e.message) + '). Please try again.');
+    });
+  }
+
+  function startGuest(code) {
+    roomCode = code;
+    $('#connectingText').textContent = 'Joining game ' + code + '…';
+    show('connecting');
+    peer = new Peer();
+    peer.on('open', () => {
+      conn = peer.connect(PREFIX + code, {reliable: true});
+      wireConn();
+    });
+    peer.on('error', e => {
+      if (e.type === 'peer-unavailable') fail(`No game found with code ${code}. Check it and try again.`);
+      else fail('Connection problem (' + (e.type || e.message) + '). Please try again.');
+    });
+    joinTimer = setTimeout(() => {
+      if (!conn || !conn.open) fail('Could not connect. Some work or school networks block peer-to-peer connections — try a different network.');
+    }, 20000);
+  }
+
+  // ---------- host: authoritative game logic ----------
+  const mkPlayer = name => ({name, pos: 0, tried: [[], [], [], []], guesses: 0});
+
+  function newGame(first) {
+    return {
+      secret: [rand10(), rand10(), rand10(), rand10()],
+      players: [mkPlayer(myName), mkPlayer(oppName)],
+      turn: first, winner: null,
+      last: {type: 'new', id: ++seq}
+    };
+  }
+
+  function hostData(d) {
+    if (!d || typeof d !== 'object') return;
+    if (d.type === 'hello') {
+      oppName = cleanName(d.name);
+      if (!game) { firstTurn = Math.random() < .5 ? 0 : 1; game = newGame(firstTurn); }
+      else game.players[1].name = oppName;
+      broadcast();
+    } else if (d.type === 'guess') {
+      hostGuess(1, d.digit);
+    } else if (d.type === 'rematch') {
+      rematch();
+    }
+  }
+
+  function hostGuess(i, digit) {
+    const d = Number(digit);
+    if (!game || game.winner !== null || game.turn !== i || !Number.isInteger(d) || d < 0 || d > 9) return;
+    const p = game.players[i], slot = p.pos;
+    if (p.tried[slot].includes(d)) return;
+    p.guesses++;
+    const correct = game.secret[slot] === d;
+    if (correct) {
+      p.pos++;
+      if (p.pos === 4) game.winner = i;
+    } else {
+      p.tried[slot].push(d);
+      game.turn = 1 - i;
+    }
+    game.last = {type: 'guess', who: i, slot, digit: d, correct, id: ++seq};
+    broadcast();
+  }
+
+  function rematch() {
+    if (!game || game.winner === null) return;
+    firstTurn = 1 - firstTurn;
+    game = newGame(firstTurn);
+    broadcast();
+  }
+
+  function viewFor(i) {
+    const me = game.players[i], op = game.players[1 - i], L = game.last;
+    let last = null;
+    if (L) {
+      last = L.type === 'new'
+        ? {type: 'new', id: L.id}
+        : {type: 'guess', mine: L.who === i, slot: L.slot, correct: L.correct,
+           digit: L.who === i ? L.digit : null, id: L.id};
+    }
+    return {
+      code: roomCode,
+      me:  {name: me.name, pos: me.pos, locked: game.secret.slice(0, me.pos),
+            tried: me.pos < 4 ? me.tried[me.pos].slice() : [], guesses: me.guesses},
+      opp: {name: op.name, pos: op.pos, guesses: op.guesses},
+      myTurn: game.winner === null && game.turn === i,
+      winner: game.winner === null ? null : (game.winner === i ? 'me' : 'opp'),
+      secret: game.winner !== null ? game.secret.slice() : null,
+      last
+    };
+  }
+
+  function broadcast() {
+    show('game');
+    render(viewFor(0));
+    if (conn && conn.open) conn.send({type: 'state', view: viewFor(1)});
+  }
+
+  // ---------- guest ----------
+  function guestData(d) {
+    if (!d || typeof d !== 'object') return;
+    if (d.type === 'state' && d.view) { show('game'); render(d.view); }
+    else if (d.type === 'full') fail('That game already has two players.');
+  }
+
+  // ---------- actions ----------
+  function sendGuess(n) {
+    if (!view || !view.myTurn || view.me.tried.includes(n)) return;
+    sfx.click();
+    view.myTurn = false; renderKeypad(view);
+    if (isHost) hostGuess(0, n);
+    else if (conn && conn.open) conn.send({type: 'guess', digit: n});
+  }
+
+  function requestRematch() {
+    $('#rematchBtn').disabled = true;
+    if (isHost) rematch();
+    else if (conn && conn.open) conn.send({type: 'rematch'});
+  }
+
+  // ---------- rendering ----------
+  function notice(msg) { const n = $('#notice'); n.textContent = msg; n.hidden = false; }
+
+  function dial(text, cls) {
+    const el = document.createElement('div');
+    el.className = 'dial ' + (cls || '');
+    el.textContent = text;
+    return el;
+  }
+
+  function renderDials(el, pos, done, mineSide) {
+    el.innerHTML = '';
+    for (let i = 0; i < 4; i++) {
+      if (i < pos) el.appendChild(mineSide ? dial(view.me.locked[i], 'locked') : dial('🔒', 'locked hidden'));
+      else if (i === pos && !done) el.appendChild(dial('?', 'active'));
+      else el.appendChild(dial('', ''));
+    }
+  }
+
+  function renderKeypad(v) {
+    const kp = $('#keypad');
+    kp.innerHTML = '';
+    for (let n = 1; n <= 10; n++) {
+      const d = n % 10; // 1..9 then 0
+      const b = document.createElement('button');
+      b.textContent = d;
+      const tried = v.me.tried.includes(d);
+      if (tried) b.className = 'tried';
+      b.disabled = !v.myTurn || tried;
+      b.addEventListener('click', () => sendGuess(d));
+      kp.appendChild(b);
+    }
+  }
+
+  function log(text, cls) {
+    const li = document.createElement('li');
+    li.textContent = text; if (cls) li.className = cls;
+    const ul = $('#log');
+    ul.prepend(li);
+    while (ul.children.length > 40) ul.lastChild.remove();
+  }
+
+  const ord = n => ['1st', '2nd', '3rd', '4th'][n];
+
+  function render(v) {
+    view = v; oppName = v.opp.name;
+    const done = v.winner !== null;
+    $('#gameCode').textContent = v.code || roomCode;
+    $('#meName').textContent = v.me.name + ' (you)';
+    $('#oppName').textContent = v.opp.name;
+    $('#meMeta').textContent = `${v.me.pos}/4 locked · ${v.me.guesses} guesses`;
+    $('#oppMeta').textContent = `${v.opp.pos}/4 locked · ${v.opp.guesses} guesses`;
+    renderDials($('#meDials'), v.me.pos, done, true);
+    renderDials($('#oppDials'), v.opp.pos, done, false);
+    $('#meBoard').classList.toggle('turn', v.myTurn);
+    $('#oppBoard').classList.toggle('turn', !done && !v.myTurn);
+
+    const st = $('#status');
+    st.classList.toggle('mine', v.myTurn);
+    st.textContent = done
+      ? (v.winner === 'me' ? 'You cracked the code!' : `${v.opp.name} cracked the code!`)
+      : v.myTurn ? `Your turn — guess the ${ord(v.me.pos)} digit`
+                 : `${v.opp.name} is guessing their ${ord(v.opp.pos)} digit…`;
+    renderKeypad(v);
+
+    // one-off effects for new events
+    const L = v.last;
+    if (L && L.id !== lastSeen) {
+      lastSeen = L.id;
+      if (L.type === 'new') {
+        $('#log').innerHTML = '';
+        log(`New code set! ${v.myTurn ? 'You go' : v.opp.name + ' goes'} first.`, 'info');
+      } else if (L.mine) {
+        const el = $('#meDials').children[L.slot];
+        if (L.correct) { el && el.classList.add('pop'); sfx.lock(); log(`You locked in ${L.digit} as the ${ord(L.slot)} digit — go again!`, 'good'); }
+        else { el && el.classList.add('shake'); sfx.wrong(); log(`${L.digit} isn't the ${ord(L.slot)} digit. Over to ${v.opp.name}.`, 'bad'); }
+      } else {
+        const el = $('#oppDials').children[L.slot];
+        if (L.correct) { el && el.classList.add('pop'); sfx.opp(); log(`${v.opp.name} locked in their ${ord(L.slot)} digit!`, 'bad'); }
+        else { log(`${v.opp.name} guessed wrong. Your turn!`, 'good'); }
+      }
+      if (done) {
+        setTimeout(() => (v.winner === 'me' ? sfx.win : sfx.lose)(), 350);
+      }
+    }
+
+    // result overlay
+    const ov = $('#overlay');
+    if (done) {
+      $('#resultTitle').textContent = v.winner === 'me' ? 'You win!' : 'Unlucky!';
+      $('#resultText').textContent = v.winner === 'me'
+        ? `You cracked it in ${v.me.guesses} guesses.`
+        : `${v.opp.name} cracked it in ${v.opp.guesses} guesses. The code was:`;
+      const sd = $('#secretDials'); sd.innerHTML = '';
+      v.secret.forEach(d => sd.appendChild(dial(d, 'locked')));
+      $('#rematchBtn').disabled = false;
+      ov.hidden = false;
+    } else {
+      ov.hidden = true;
+    }
+  }
+
+  // ---------- wiring ----------
+  $('#name').value = load('ctc-name') || '';
+  const params = new URLSearchParams(location.search);
+  if (params.get('join')) $('#joinCode').value = params.get('join').toUpperCase().slice(0, 5);
+
+  function readName() {
+    myName = cleanName($('#name').value);
+    $('#name').value = myName;
+    store('ctc-name', myName);
+  }
+
+  $('#createBtn').addEventListener('click', () => {
+    if (typeof Peer === 'undefined') return setError('Could not load the networking library. Check your connection and reload.');
+    setError(''); readName(); isHost = true;
+    $('#connectingText').textContent = 'Setting up your game…';
+    show('connecting');
+    startHost();
+  });
+
+  $('#joinBtn').addEventListener('click', () => {
+    if (typeof Peer === 'undefined') return setError('Could not load the networking library. Check your connection and reload.');
+    const code = $('#joinCode').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (code.length !== 5) return setError('Enter the 5-character game code.');
+    setError(''); readName(); isHost = false;
+    startGuest(code);
+  });
+  $('#joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') $('#joinBtn').click(); });
+
+  $('#copyBtn').addEventListener('click', async () => {
+    const inp = $('#shareLink');
+    try { await navigator.clipboard.writeText(inp.value); }
+    catch (e) { inp.select(); document.execCommand && document.execCommand('copy'); }
+    $('#copyBtn').textContent = 'Copied!';
+    setTimeout(() => $('#copyBtn').textContent = 'Copy link', 1500);
+  });
+
+  $('#rematchBtn').addEventListener('click', requestRematch);
+  $('#leaveBtn').addEventListener('click', () => {
+    if (confirm('Leave this game?')) { try { peer && peer.destroy(); } catch (e) {} location.href = location.pathname; }
+  });
+  $('#muteBtn').addEventListener('click', () => {
+    muted = !muted; $('#muteBtn').textContent = muted ? '🔇' : '🔊';
+  });
+
+  document.addEventListener('keydown', e => {
+    if ($('#game').hidden || e.target.tagName === 'INPUT') return;
+    if (/^[0-9]$/.test(e.key)) sendGuess(Number(e.key));
+  });
+})();
+</script>
+</body>
+</html>

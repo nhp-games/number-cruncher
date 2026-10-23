@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crack the Code — Solo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0e1806; --panel:#1a2a0c; --panel2:#0a1204; --line:#3f5c1a;
+    --gold:#e8ff2e; --pink:#72e01c; --green:#a6ff3d; --red:#ff6b2b;
+    --text:#f3ffe0; --muted:#a9c67c;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    min-height:100vh; color:var(--text);
+    font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;
+    background:radial-gradient(circle at 50% -10%,#2f4f10 0%,var(--bg) 60%) fixed, var(--bg);
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:64px 16px 56px}
+  h1{
+    font-family:Bungee,sans-serif; font-weight:400; text-align:center; margin:8px 0 4px;
+    font-size:clamp(34px,8vw,64px); color:var(--gold); letter-spacing:1px;
+    text-shadow:0 0 22px rgba(232,255,46,.45),0 4px 0 #748600;
+  }
+  .tag{text-align:center;color:var(--muted);margin:0 0 24px}
+  .card{
+    background:var(--panel); border:3px solid var(--gold); border-radius:18px; padding:22px;
+    box-shadow:0 0 0 6px rgba(232,255,46,.08),0 18px 40px rgba(0,0,0,.4);
+  }
+  .bulbs{position:relative}
+  .bulbs::before{
+    content:""; position:absolute; inset:-11px; border-radius:24px; pointer-events:none;
+    background:radial-gradient(circle,var(--gold) 2.5px,transparent 3.5px) 0 0/22px 22px;
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor; mask-composite:exclude; padding:6px; opacity:.85;
+    animation:twinkle 1.2s steps(2) infinite;
+  }
+  @keyframes twinkle{50%{opacity:.4}}
+  label,.label{display:block;font-weight:600;margin:0 0 6px}
+  input[type=text]{
+    width:100%; padding:12px 14px; border-radius:10px; border:2px solid var(--line);
+    background:var(--panel2); color:var(--text); font:inherit; font-size:18px;
+  }
+  input[type=text]:focus{outline:none;border-color:var(--gold)}
+  button{
+    font:inherit; font-weight:800; cursor:pointer; border:none; border-radius:12px;
+    padding:13px 18px; font-size:17px; color:#132004; background:var(--gold);
+    box-shadow:0 4px 0 #748600; transition:transform .05s;
+  }
+  button:active{transform:translateY(3px);box-shadow:0 1px 0 #748600}
+  button.alt{background:var(--pink);color:#132004;box-shadow:0 4px 0 #3c8a08}
+  button.ghost{background:transparent;color:var(--muted);box-shadow:none;border:2px solid var(--line);padding:8px 12px;font-size:14px}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .stack{display:grid;gap:20px}
+  .rules{color:var(--muted);line-height:1.55;margin:0;padding-left:20px}
+  .rules b{color:var(--text)}
+  .small{font-size:14px;color:var(--muted);margin:6px 0 0}
+
+  /* segmented pickers */
+  .seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+  .seg button{
+    background:var(--panel2);color:var(--muted);box-shadow:none;border:2px solid var(--line);
+    padding:10px 8px;font-size:15px;line-height:1.2;
+  }
+  .seg button small{display:block;font-weight:600;font-size:12px;opacity:.8;margin-top:2px}
+  .seg button[aria-pressed=true]{border-color:var(--gold);color:var(--gold);background:#1d3a08;box-shadow:0 0 14px rgba(232,255,46,.2)}
+  #startBtn{font-family:Bungee,sans-serif;font-weight:400;font-size:22px;padding:16px}
+
+  /* game */
+  .topbar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .topbar .btns{display:flex;gap:8px}
+  .status{
+    font-family:Bungee,sans-serif;font-size:clamp(18px,4vw,26px);text-align:center;
+    padding:14px;border-radius:14px;background:var(--panel2);border:2px solid var(--line);margin-bottom:16px;
+  }
+  .status.mine{border-color:var(--gold);color:var(--gold);box-shadow:0 0 20px rgba(232,255,46,.25)}
+  .dots::after{content:"";display:inline-block;width:1.2em;text-align:left;animation:dots 1s steps(4) infinite}
+  @keyframes dots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+  .boards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+  @media (max-width:640px){.boards{grid-template-columns:1fr}}
+  .board{background:var(--panel);border:3px solid var(--line);border-radius:16px;padding:16px;transition:border-color .2s,opacity .2s}
+  .board.turn{border-color:var(--gold)}
+  .board.out{opacity:.55}
+  .board h2{margin:0 0 4px;font-size:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .meta{color:var(--muted);font-size:14px;margin-bottom:12px}
+  .meta b{color:var(--text)}
+  .meta .warn{color:var(--red);font-weight:800}
+  .dials{display:flex;gap:10px;justify-content:center}
+  .dial{
+    width:clamp(54px,14vw,72px);height:clamp(72px,18vw,92px);border-radius:12px;
+    background:var(--panel2);border:3px solid var(--line);display:grid;place-items:center;
+    font-family:Bungee,sans-serif;font-size:clamp(30px,8vw,44px);color:var(--muted);
+  }
+  .dial.active{border-color:var(--gold);color:var(--gold);animation:pulse 1.4s ease-in-out infinite}
+  .dial.locked{border-color:var(--green);color:var(--green);background:#1d3a08}
+  .dial.hidden{font-size:clamp(24px,6vw,32px)}
+  .dial.pop{animation:pop .5s}
+  .dial.shake{animation:shake .45s;border-color:var(--red)!important;color:var(--red)!important}
+  @keyframes pulse{50%{box-shadow:0 0 18px rgba(232,255,46,.55)}}
+  @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
+  @keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+
+  /* guesses-left tank */
+  .tank{height:10px;border-radius:6px;background:var(--panel2);border:1px solid var(--line);margin-top:14px;overflow:hidden}
+  .tank i{display:block;height:100%;background:linear-gradient(90deg,#6fd11b,#c9f21a);transition:width .3s}
+  .tank.low i{background:linear-gradient(90deg,#ff6b2b,#ffb02b)}
+
+  .keypad{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;max-width:460px;margin:0 auto 18px}
+  .keypad button{font-family:Bungee,sans-serif;font-size:28px;padding:14px 0}
+  .keypad button.tried{background:#2a3d12;color:#6f8c45;box-shadow:none;text-decoration:line-through}
+  .hint{text-align:center;color:var(--muted);font-size:14px;margin:-6px 0 18px}
+
+  .log{list-style:none;margin:0;padding:0;max-height:220px;overflow:auto;background:var(--panel2);border:2px solid var(--line);border-radius:12px}
+  .log li{padding:8px 12px;border-bottom:1px solid #1b2b0c;font-size:15px}
+  .log li:last-child{border-bottom:none}
+  .log .good{color:var(--green)} .log .bad{color:var(--red)} .log .info{color:var(--gold)}
+
+  .overlay{position:fixed;inset:0;background:rgba(5,10,2,.85);display:grid;place-items:center;padding:16px;z-index:10}
+  .overlay.gunged{background:rgba(5,10,2,.3)}
+  .overlay .card{max-width:460px;width:100%;text-align:center;position:relative;z-index:1}
+  .overlay h2{font-family:Bungee,sans-serif;font-weight:400;font-size:clamp(28px,7vw,40px);margin:0 0 8px;color:var(--gold)}
+  .overlay .dials{margin:16px 0 20px}
+  .overlay .btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+
+  /* the gunge tank empties on you */
+  .pour{position:fixed;inset:0;z-index:0;pointer-events:none;transform:translateY(-115%);
+    background:linear-gradient(#d8ff1f,#8fe01b 60%,#5bb312)}
+  .pour::after{content:"";position:absolute;left:0;right:0;top:100%;height:64px;
+    background:radial-gradient(circle at 50% 0,#5bb312 17px,transparent 18px) 0 0/46px 64px repeat-x}
+  .pour.go{animation:pour 1.1s cubic-bezier(.5,0,.75,1) forwards}
+  @keyframes pour{to{transform:translateY(0)}}
+
+  /* drips along the top */
+  .gunge{position:fixed;top:0;left:0;right:0;height:70px;pointer-events:none;z-index:5;
+    filter:drop-shadow(0 3px 2px rgba(0,0,0,.35))}
+  .gunge svg{width:100%;height:100%;display:block}
+  .gunge .drip{animation:ooze 4s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:top}
+  .gunge .drip:nth-child(2n){animation-duration:5.5s}
+  .gunge .drip:nth-child(3n){animation-duration:3.2s}
+  @keyframes ooze{to{transform:scaleY(1.35)}}
+  @media (prefers-reduced-motion:reduce){
+    .gunge .drip,.dial.active,.bulbs::before{animation:none}
+    .pour.go{animation-duration:.01s}
+  }
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="gunge" aria-hidden="true"><svg viewBox="0 0 1000 70" preserveAspectRatio="none">
+  <defs><linearGradient id="slime" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c9f21a"/><stop offset="1" stop-color="#6fd11b"/></linearGradient></defs>
+  <rect x="0" y="0" width="1000" height="16" fill="url(#slime)"/>
+  <g fill="url(#slime)">
+    <path class="drip" d="M40 14 q0 26 12 30 q12-4 12-30z"/>
+    <path class="drip" d="M130 14 q0 40 9 44 q9-4 9-44z"/>
+    <path class="drip" d="M215 14 q0 18 14 22 q14-4 14-22z"/>
+    <path class="drip" d="M320 14 q0 34 10 38 q10-4 10-38z"/>
+    <path class="drip" d="M410 14 q0 22 16 26 q16-4 16-26z"/>
+    <path class="drip" d="M520 14 q0 44 8 48 q8-4 8-48z"/>
+    <path class="drip" d="M600 14 q0 20 13 24 q13-4 13-24z"/>
+    <path class="drip" d="M700 14 q0 32 11 36 q11-4 11-36z"/>
+    <path class="drip" d="M790 14 q0 16 15 20 q15-4 15-20z"/>
+    <path class="drip" d="M880 14 q0 38 9 42 q9-4 9-42z"/>
+    <path class="drip" d="M955 14 q0 24 12 28 q12-4 12-28z"/>
+  </g></svg></div>
+
+<div class="wrap">
+  <h1>Crack the Code</h1>
+  <p class="tag">Solo mode. You versus Gungebot. Run out of guesses and you get gunged.</p>
+
+  <!-- SETUP -->
+  <section id="lobby" class="screen">
+    <div class="card bulbs stack">
+      <div>
+        <label for="name">Your name</label>
+        <input id="name" type="text" maxlength="16" placeholder="e.g. Noel" autocomplete="off">
+      </div>
+      <div>
+        <span class="label">Max guesses each</span>
+        <div class="seg" id="limitSeg">
+          <button data-v="20">20<small>Tough</small></button>
+          <button data-v="25">25<small>Fair</small></button>
+          <button data-v="30">30<small>Gentle</small></button>
+          <button data-v="0">No limit<small>Pure race</small></button>
+        </div>
+        <p class="small">Cracking all four digits takes about 22 guesses on average. Correct guesses count too.</p>
+      </div>
+      <div>
+        <span class="label">Gungebot's brain</span>
+        <div class="seg" id="skillSeg">
+          <button data-v="dim">Dim<small>Forgets what it's tried</small></button>
+          <button data-v="sharp">Sharp<small>Never repeats a miss</small></button>
+        </div>
+      </div>
+      <button id="startBtn">Start</button>
+      <ul class="rules">
+        <li>The game picks a secret <b>4-digit code</b>. You and Gungebot race to crack the same code.</li>
+        <li>Crack it <b>one digit at a time</b>, left to right. Guess right and that digit <b>locks in</b>, and you go again.</li>
+        <li>Guess wrong and it's Gungebot's turn. You can see how many digits it has locked, but not which numbers.</li>
+        <li>Every guess uses one from your allowance. <b>Run out and you're out</b>, and Gungebot plays on alone. First to lock all four wins.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- GAME -->
+  <section id="game" class="screen" hidden>
+    <div class="topbar">
+      <span id="rulesLine" class="muted"></span>
+      <span class="btns">
+        <button id="muteBtn" class="ghost" title="Sound on/off">🔊</button>
+        <button id="setupBtn" class="ghost">Settings</button>
+      </span>
+    </div>
+    <div id="status" class="status">…</div>
+    <div class="boards">
+      <div id="meBoard" class="board">
+        <h2 id="meName">You</h2>
+        <div id="meMeta" class="meta"></div>
+        <div id="meDials" class="dials"></div>
+        <div id="meTank" class="tank"><i></i></div>
+      </div>
+      <div id="botBoard" class="board">
+        <h2>Gungebot 🤖</h2>
+        <div id="botMeta" class="meta"></div>
+        <div id="botDials" class="dials"></div>
+        <div id="botTank" class="tank"><i></i></div>
+      </div>
+    </div>
+    <div id="keypad" class="keypad"></div>
+    <p class="hint">Tip: you can type the number keys on your keyboard too.</p>
+    <ul id="log" class="log"></ul>
+  </section>
+</div>
+
+<!-- RESULT -->
+<div id="overlay" class="overlay" hidden>
+  <div id="pour" class="pour"></div>
+  <div class="card bulbs">
+    <h2 id="resultTitle"></h2>
+    <div id="resultText" class="muted"></div>
+    <div id="secretDials" class="dials"></div>
+    <div class="btns">
+      <button id="againBtn">Play again</button>
+      <button id="changeBtn" class="alt">Change settings</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const BOT = 'Gungebot';
+  const $ = s => document.querySelector(s);
+  const ord = n => ['1st', '2nd', '3rd', '4th'][n];
+
+  function store(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function load(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+
+  const rand10 = () => { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % 10; };
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  const show = id => document.querySelectorAll('.screen').forEach(s => s.hidden = s.id !== id);
+
+  let settings = {
+    name: load('ctc-name') || '',
+    limit: [0, 20, 25, 30].includes(Number(load('ctc-solo-limit'))) && load('ctc-solo-limit') !== null ? Number(load('ctc-solo-limit')) : 25,
+    skill: load('ctc-solo-skill') === 'dim' ? 'dim' : 'sharp'
+  };
+  let game = null, firstTurn = Math.random() < .5 ? 0 : 1, played = 0, botTimer = null, muted = false;
+
+  // ---------- sound ----------
+  let actx = null;
+  function tone(f, t = .12, type = 'sine', when = 0, vol = .15, slideTo) {
+    if (muted) return;
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      const o = actx.createOscillator(), g = actx.createGain(), s = actx.currentTime + when;
+      o.type = type; o.frequency.setValueAtTime(f, s);
+      if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, s + t);
+      g.gain.setValueAtTime(vol, s); g.gain.exponentialRampToValueAtTime(.0001, s + t);
+      o.connect(g).connect(actx.destination); o.start(s); o.stop(s + t + .03);
+    } catch (e) {}
+  }
+  const sfx = {
+    click: () => tone(700, .05, 'square', 0, .04),
+    wrong: () => { tone(170, .4, 'sawtooth', 0, .1); tone(120, .4, 'sawtooth', .05, .08); },
+    lock:  () => { tone(523, .12, 'triangle'); tone(784, .22, 'triangle', .1); },
+    bot:   () => tone(330, .15, 'triangle', 0, .08),
+    out:   () => tone(300, .5, 'square', 0, .06, 90),
+    win:   () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .3, 'triangle', i * .12)),
+    gunge: () => { tone(400, 1.1, 'sawtooth', 0, .1, 60); tone(90, 1.2, 'sine', .2, .2, 40); }
+  };
+
+  // ---------- setup screen ----------
+  function syncSeg(id, val) {
+    document.querySelectorAll(`#${id} button`).forEach(b =>
+      b.setAttribute('aria-pressed', String(b.dataset.v === String(val))));
+  }
+  function wireSeg(id, key, num) {
+    document.querySelectorAll(`#${id} button`).forEach(b => b.addEventListener('click', () => {
+      settings[key] = num ? Number(b.dataset.v) : b.dataset.v;
+      store(key === 'limit' ? 'ctc-solo-limit' : 'ctc-solo-skill', String(settings[key]));
+      syncSeg(id, settings[key]);
+    }));
+  }
+  $('#name').value = settings.name;
+  syncSeg('limitSeg', settings.limit); syncSeg('skillSeg', settings.skill);
+  wireSeg('limitSeg', 'limit', true); wireSeg('skillSeg', 'skill', false);
+
+  // ---------- game logic ----------
+  const mkPlayer = name => ({name, pos: 0, tried: [[], [], [], []], guesses: 0, out: false});
+
+  function newGame() {
+    clearTimeout(botTimer);
+    if (played > 0) firstTurn = 1 - firstTurn;
+    played++;
+    game = {
+      secret: [rand10(), rand10(), rand10(), rand10()],
+      players: [mkPlayer(settings.name), mkPlayer(BOT)],
+      limit: settings.limit, skill: settings.skill,
+      turn: firstTurn, over: false, winner: null, busy: false
+    };
+    $('#overlay').hidden = true;
+    $('#pour').classList.remove('go');
+    $('#log').innerHTML = '';
+    show('game');
+    $('#rulesLine').textContent = (game.limit ? `Max ${game.limit} guesses each` : 'No guess limit') +
+      ` · ${game.skill === 'dim' ? 'Dim' : 'Sharp'} bot`;
+    log(`New code set! ${game.turn === 0 ? 'You go' : BOT + ' goes'} first.`, 'info');
+    render();
+    if (game.turn === 1) scheduleBot();
+  }
+
+  const left = p => game.limit ? Math.max(0, game.limit - p.guesses) : Infinity;
+
+  function guess(i, d) {
+    if (!game || game.over || game.turn !== i) return;
+    const p = game.players[i], slot = p.pos;
+    if (i === 0 && p.tried[slot].includes(d)) return;
+    p.guesses++;
+    const correct = game.secret[slot] === d;
+    if (correct) p.pos++;
+    else if (!p.tried[slot].includes(d)) p.tried[slot].push(d);
+
+    let ranOut = false;
+    if (p.pos === 4) { game.over = true; game.winner = i; }
+    else if (game.limit && p.guesses >= game.limit) { p.out = true; ranOut = true; }
+
+    if (!game.over) {
+      let next = correct && !p.out ? i : 1 - i;
+      if (game.players[next].out) next = 1 - next;
+      if (game.players[next].out) { game.over = true; game.winner = null; }
+      else game.turn = next;
+    }
+
+    render();
+    effects(i, slot, d, correct, ranOut);
+    if (game.over) setTimeout(finish, 650);
+    else if (game.turn === 1) scheduleBot();
+  }
+
+  function scheduleBot() {
+    clearTimeout(botTimer);
+    game.busy = true; render();
+    botTimer = setTimeout(() => {
+      if (!game || game.over || game.turn !== 1) return;
+      game.busy = false;
+      const b = game.players[1], tried = b.tried[b.pos];
+      const fresh = [0,1,2,3,4,5,6,7,8,9].filter(n => !tried.includes(n));
+      // Dim bot picks any digit, so it can waste a turn repeating a miss.
+      const d = game.skill === 'dim' ? rand10() : pick(fresh);
+      guess(1, d);
+    }, 700 + Math.random() * 700);
+  }
+
+  function effects(i, slot, d, correct, ranOut) {
+    const nextIsMe = !game.over && game.turn === 0;
+    if (i === 0) {
+      const el = $('#meDials').children[slot];
+      if (correct) {
+        el && el.classList.add('pop'); sfx.lock();
+        log(`You locked in ${d} as the ${ord(slot)} digit${!game.over && nextIsMe ? ' — go again!' : '!'}`, 'good');
+      } else {
+        el && el.classList.add('shake'); sfx.wrong();
+        log(`${d} isn't the ${ord(slot)} digit.${game.over ? '' : nextIsMe ? ' Go again.' : ` Over to ${BOT}.`}`, 'bad');
+      }
+      if (ranOut) { setTimeout(sfx.out, 250); log(`You're out of guesses!${game.over ? '' : ` ${BOT} plays on alone.`}`, 'bad'); }
+    } else {
+      const el = $('#botDials').children[slot];
+      if (correct) { el && el.classList.add('pop'); sfx.bot(); log(`${BOT} locked in its ${ord(slot)} digit!`, 'bad'); }
+      else { el && el.classList.add('shake'); log(`${BOT} guessed wrong.${nextIsMe ? ' Your turn!' : ''}`, 'good'); }
+      if (ranOut) log(`${BOT} is out of guesses!${game.over ? '' : ' The code is yours to crack.'}`, 'good');
+    }
+  }
+
+  function finish() {
+    const me = game.players[0], bot = game.players[1];
+    const ov = $('#overlay'), pour = $('#pour');
+    const won = game.winner === 0;
+    $('#resultTitle').textContent = won ? 'You win!' : game.winner === 1 ? 'Gunged!' : 'Everyone gets gunged!';
+    $('#resultText').textContent = won
+      ? `You cracked it in ${me.guesses} guess${me.guesses === 1 ? '' : 'es'}${game.limit ? ` with ${left(me)} to spare` : ''}.`
+      : game.winner === 1
+        ? `${BOT} cracked it in ${bot.guesses} guesses. The code was:`
+        : `You both ran out of guesses. The code was:`;
+    const sd = $('#secretDials'); sd.innerHTML = '';
+    game.secret.forEach(d => sd.appendChild(dial(d, 'locked')));
+    ov.classList.toggle('gunged', !won);
+    ov.hidden = false;
+    if (won) sfx.win();
+    else { void pour.offsetWidth; pour.classList.add('go'); sfx.gunge(); }
+    $('#againBtn').focus();
+  }
+
+  // ---------- rendering ----------
+  function dial(text, cls) {
+    const el = document.createElement('div');
+    el.className = 'dial ' + (cls || '');
+    el.textContent = text;
+    el.addEventListener('animationend', e => {
+      if (e.animationName === 'shake' || e.animationName === 'pop') el.classList.remove('shake', 'pop');
+    });
+    return el;
+  }
+
+  function renderDials(el, p, mine) {
+    el.innerHTML = '';
+    for (let i = 0; i < 4; i++) {
+      if (i < p.pos) el.appendChild(mine ? dial(game.secret[i], 'locked') : dial('🔒', 'locked hidden'));
+      else if (i === p.pos && !game.over && !p.out) el.appendChild(dial('?', 'active'));
+      else el.appendChild(dial('', ''));
+    }
+  }
+
+  function metaHTML(p) {
+    let g = game.limit
+      ? `<b>${left(p)}</b> of ${game.limit} guesses left`
+      : `${p.guesses} guess${p.guesses === 1 ? '' : 'es'}`;
+    if (p.out) g = '<span class="warn">Out of guesses</span>';
+    else if (game.limit && left(p) <= 3) g = `<span class="warn">${left(p)} guess${left(p) === 1 ? '' : 'es'} left!</span>`;
+    return `${p.pos}/4 locked · ${g}`;
+  }
+
+  function renderTank(el, p) {
+    el.hidden = !game.limit;
+    if (!game.limit) return;
+    el.firstElementChild.style.width = (left(p) / game.limit * 100) + '%';
+    el.classList.toggle('low', left(p) <= 3);
+  }
+
+  function renderKeypad() {
+    const kp = $('#keypad'), me = game.players[0];
+    const myTurn = !game.over && game.turn === 0;
+    const tried = me.pos < 4 ? me.tried[me.pos] : [];
+    kp.innerHTML = '';
+    for (let n = 1; n <= 10; n++) {
+      const d = n % 10;
+      const b = document.createElement('button');
+      b.textContent = d;
+      if (tried.includes(d)) b.className = 'tried';
+      b.disabled = !myTurn || tried.includes(d);
+      b.addEventListener('click', () => playerGuess(d));
+      kp.appendChild(b);
+    }
+  }
+
+  function render() {
+    const me = game.players[0], bot = game.players[1];
+    const myTurn = !game.over && game.turn === 0;
+    $('#meName').textContent = me.name + ' (you)';
+    $('#meMeta').innerHTML = metaHTML(me);
+    $('#botMeta').innerHTML = metaHTML(bot);
+    renderDials($('#meDials'), me, true);
+    renderDials($('#botDials'), bot, false);
+    renderTank($('#meTank'), me); renderTank($('#botTank'), bot);
+    $('#meBoard').classList.toggle('turn', myTurn);
+    $('#botBoard').classList.toggle('turn', !game.over && game.turn === 1);
+    $('#meBoard').classList.toggle('out', me.out);
+    $('#botBoard').classList.toggle('out', bot.out);
+
+    const st = $('#status');
+    st.classList.toggle('mine', myTurn);
+    st.classList.remove('dots');
+    if (game.over) {
+      st.textContent = game.winner === 0 ? 'You cracked the code!'
+        : game.winner === 1 ? `${BOT} cracked the code!` : 'Nobody cracked it!';
+    } else if (myTurn) {
+      st.textContent = `Your turn — guess the ${ord(me.pos)} digit`;
+    } else {
+      st.textContent = me.out ? `You're out — ${BOT} plays on` : `${BOT} is thinking`;
+      st.classList.add('dots');
+    }
+    renderKeypad();
+  }
+
+  function log(text, cls) {
+    const li = document.createElement('li');
+    li.textContent = text; if (cls) li.className = cls;
+    const ul = $('#log');
+    ul.prepend(li);
+    while (ul.children.length > 60) ul.lastChild.remove();
+  }
+
+  function playerGuess(d) {
+    if (!game || game.over || game.turn !== 0) return;
+    const me = game.players[0];
+    if (me.tried[me.pos].includes(d)) return;
+    sfx.click();
+    guess(0, d);
+  }
+
+  // ---------- wiring ----------
+  function start() {
+    settings.name = String($('#name').value || '').trim().slice(0, 16) || 'Player';
+    $('#name').value = settings.name;
+    store('ctc-name', settings.name);
+    newGame();
+  }
+  function toSetup() {
+    clearTimeout(botTimer);
+    game = null;
+    $('#overlay').hidden = true;
+    show('lobby');
+  }
+
+  $('#startBtn').addEventListener('click', start);
+  $('#name').addEventListener('keydown', e => { if (e.key === 'Enter') start(); });
+  $('#againBtn').addEventListener('click', newGame);
+  $('#changeBtn').addEventListener('click', toSetup);
+  $('#setupBtn').addEventListener('click', () => {
+    if (game && !game.over && !confirm('Abandon this game and change settings?')) return;
+    toSetup();
+  });
+  $('#muteBtn').addEventListener('click', () => {
+    muted = !muted; $('#muteBtn').textContent = muted ? '🔇' : '🔊';
+  });
+  document.addEventListener('keydown', e => {
+    if ($('#game').hidden || !$('#overlay').hidden || e.target.tagName === 'INPUT') return;
+    if (/^[0-9]$/.test(e.key)) playerGuess(Number(e.key));
+  });
+})();
+</script>
+</body>
+</html>
